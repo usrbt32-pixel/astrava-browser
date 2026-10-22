@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Astrava Browser</title>
+<style>
+:root{color-scheme:dark;--bg:#090612;--panel:#151021;--panel2:#211630;--line:#39264f;--text:#f5efff;--muted:#b6a6ca;--accent:#bb83ff}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px system-ui,sans-serif;overflow:hidden}
+header{height:126px;background:linear-gradient(115deg,#100b20,#211132 55%,#100b20);border-bottom:1px solid var(--line);padding:9px 14px;display:flex;flex-direction:column;gap:8px;position:relative;z-index:5}
+.top{height:27px;display:flex;align-items:center;gap:10px}
+.logo{font-weight:900;letter-spacing:2px;font-size:18px;background:linear-gradient(90deg,#fff,#c58bff);color:transparent;background-clip:text}
+.sub{font-size:10px;color:var(--muted);letter-spacing:2px}
+#tabs{display:flex;align-items:center;gap:6px;min-height:29px;overflow-x:auto}
+.tab{max-width:220px;min-width:100px;display:flex;align-items:center;gap:8px;background:#171022;border:1px solid var(--line);border-radius:9px;padding:5px 9px;cursor:pointer;color:var(--muted);transition:background .15s,border .15s}
+.tab:hover{background:#291a39}
+.tab.active{background:#352047;color:white;border-color:#9d6bc9;box-shadow:0 0 12px #a45bff18}
+.tabtitle{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
+.close{border:0;background:transparent;color:#d9c9ea;cursor:pointer;font-size:16px}
+#new{flex:0 0 31px;height:29px;border-radius:8px;border:1px solid var(--line);background:#201630;color:white;font-size:20px;cursor:pointer}
+.toolbar{display:flex;align-items:center;gap:7px}
+.tool{height:35px;min-width:35px;border-radius:9px;border:1px solid var(--line);background:#201630;color:white;cursor:pointer;font-size:16px;transition:background .15s,border .15s}
+.tool:hover:not(:disabled){background:#39224d;border-color:#8754b0}
+.tool:disabled{opacity:.3;cursor:default}
+#address{height:37px;flex:1;min-width:80px;border-radius:11px;border:1px solid #51376c;background:#0d0916;color:white;padding:0 14px;outline:none;font-size:14px}
+#address:focus{border-color:var(--accent);box-shadow:0 0 0 2px #bb83ff22}
+#go{height:37px;padding:0 16px;border:0;border-radius:10px;background:linear-gradient(100deg,#8650cf,#b66aff);color:white;font-weight:750;cursor:pointer}
+#go:hover{filter:brightness(1.12)}
+#panels{position:absolute;right:12px;top:121px;width:min(420px,calc(100vw - 24px));max-height:65vh;overflow:auto;background:#130d1f;border:1px solid #51376c;border-radius:14px;box-shadow:0 16px 50px #0009;z-index:20;padding:14px}
+#panels[hidden]{display:none}
+.panelhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;font-weight:800}
+.panelhead button{background:transparent;border:0;color:var(--muted);font-size:19px;cursor:pointer}
+.item{border:1px solid #30203f;border-radius:10px;padding:10px;margin:7px 0;background:#1b1228;display:flex;align-items:center;gap:8px}
+.itemmain{min-width:0;flex:1;cursor:pointer}
+.itemtitle{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.itemurl,.itemmeta{font-size:11px;color:var(--muted);overflow-wrap:anywhere;margin-top:3px}
+.item button{background:#30203f;border:1px solid #4a3260;color:#f5efff;border-radius:7px;padding:5px 8px;cursor:pointer}
+.progress{height:4px;background:#30203f;border-radius:8px;margin-top:7px;overflow:hidden}
+.progress span{display:block;height:100%;background:linear-gradient(90deg,#8650cf,#d09bff)}
+.empty{color:var(--muted);padding:18px 4px;text-align:center}
+</style>
+</head>
+<body>
+<header>
+ <div class="top"><div class="logo">✦ ASTRAVA</div><div class="sub">DESKTOP BROWSER</div></div>
+ <div id="tabs"><button id="new" title="New tab">+</button></div>
+ <form class="toolbar" id="form">
+  <button class="tool" id="back" type="button" title="Back" disabled>←</button>
+  <button class="tool" id="forward" type="button" title="Forward" disabled>→</button>
+  <button class="tool" id="reload" type="button" title="Reload">⟳</button>
+  <button class="tool" id="home" type="button" title="Astrava home">⌂</button>
+  <input id="address" placeholder="Search or enter website address" autocomplete="url" spellcheck="false">
+  <button class="tool" id="bookmark" type="button" title="Save bookmark">☆</button>
+  <button class="tool" id="bookmarks" type="button" title="View bookmarks">★</button>
+  <button class="tool" id="downloads" type="button" title="View downloads">↓</button>
+  <button id="go" type="submit">Go ↗</button>
+ </form>
+</header>
+<section id="panels" hidden></section>
+<script>
+const $=id=>document.getElementById(id);
+let state={tabs:[],activeId:null,url:'',canBack:false,canForward:false,bookmarks:[],downloads:[]};
+let panelType='';
+function send(channel,...args){window.astrava.send(channel,...args)}
+function render(s){
+ state=s;
+ $('tabs').querySelectorAll('.tab').forEach(el=>el.remove());
+ for(const t of s.tabs){
+  const b=document.createElement('div');
+  b.className='tab'+(t.id===s.activeId?' active':'');
+  b.title=t.title;
+  const title=document.createElement('span');
+  title.className='tabtitle';title.textContent=t.title||'New Tab';
+  const close=document.createElement('button');
+  close.className='close';close.textContent='×';close.title='Close tab';
+  close.onclick=e=>{e.stopPropagation();send('tab:close',t.id)};
+  b.onclick=()=>send('tab:activate',t.id);
+  b.append(title,close);$('tabs').insertBefore(b,$('new'));
+ }
+ if(document.activeElement!==$('address')) $('address').value=s.url||'';
+ $('back').disabled=!s.canBack;
+ $('forward').disabled=!s.canForward;
+ renderPanel();
+}
+function openPanel(type){
+ panelType=panelType===type?'':type;
+ $('panels').hidden=!panelType;
+ send('panel:visibility', Boolean(panelType));
+ renderPanel();
+}
+function renderPanel(){
+ if(!panelType)return;
+ const p=$('panels');p.replaceChildren();
+ const head=document.createElement('div');head.className='panelhead';
+ const label=document.createElement('span');label.textContent=panelType==='bookmarks'?'★ Your Bookmarks':'↓ Downloads';
+ const close=document.createElement('button');close.textContent='×';close.onclick=()=>openPanel('');
+ head.append(label,close);p.append(head);
+
+ if(panelType==='bookmarks'){
+  if(!state.bookmarks.length){const e=document.createElement('div');e.className='empty';e.textContent='No bookmarks yet. Open a website and press ☆ to save it.';p.append(e)}
+  for(const b of state.bookmarks){
+   const item=document.createElement('div');item.className='item';
+   const main=document.createElement('div');main.className='itemmain';
+   const title=document.createElement('div');title.className='itemtitle';title.textContent=b.title;
+   const url=document.createElement('div');url.className='itemurl';url.textContent=b.url;
+   main.append(title,url);main.onclick=()=>{send('bookmark:open',b.url);openPanel('')};
+   const remove=document.createElement('button');remove.textContent='Remove';remove.onclick=()=>send('bookmark:remove',b.url);
+   item.append(main,remove);p.append(item);
+  }
+ }else{
+  const folder=document.createElement('button');folder.textContent='Open downloads folder';folder.onclick=()=>send('download:folder');p.append(folder);
+  if(!state.downloads.length){const e=document.createElement('div');e.className='empty';e.textContent='Your downloads will appear here.';p.append(e)}
+  for(const d of state.downloads){
+   const item=document.createElement('div');item.className='item';
+   const main=document.createElement('div');main.className='itemmain';
+   const title=document.createElement('div');title.className='itemtitle';title.textContent=d.filename;
+   const meta=document.createElement('div');meta.className='itemmeta';
+   const pct=d.total>0?Math.min(100,Math.round(d.received/d.total*100)):0;
+   meta.textContent=d.state==='Downloading'?(d.total?`${pct}% · ${formatBytes(d.received)} of ${formatBytes(d.total)}`:formatBytes(d.received)+' downloaded'):d.state;
+   main.append(title,meta);
+   if(d.state==='Downloading'){
+    const bar=document.createElement('div');bar.className='progress';const fill=document.createElement('span');fill.style.width=pct+'%';bar.append(fill);main.append(bar);
+   }
+   item.append(main);
+   if(d.state==='Completed'&&d.path){const open=document.createElement('button');open.textContent='Open';open.onclick=()=>send('download:open',d.path);item.append(open)}
+   p.append(item);
+  }
+ }
+}
+function formatBytes(n){
+ if(!n)return '0 B';
+ const units=['B','KB','MB','GB'];let i=0;
+ while(n>=1024&&i<units.length-1){n/=1024;i++}
+ return `${n.toFixed(i?1:0)} ${units[i]}`;
+}
+window.astrava.onState(render);
+$('new').onclick=()=>send('tab:new');
+$('form').onsubmit=e=>{e.preventDefault();send('nav:go',$('address').value);openPanel('')};
+$('back').onclick=()=>send('nav:back');
+$('forward').onclick=()=>send('nav:forward');
+$('reload').onclick=()=>send('nav:reload');
+$('home').onclick=()=>send('nav:home');
+$('bookmark').onclick=()=>send('bookmark:add');
+$('bookmarks').onclick=()=>openPanel('bookmarks');
+$('downloads').onclick=()=>openPanel('downloads');
+$('address').addEventListener('focus',e=>e.target.select());
+document.addEventListener('keydown',e=>{
+ if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='l'){e.preventDefault();$('address').focus();$('address').select()}
+ if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='t'){e.preventDefault();send('tab:new')}
+ if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='w'){e.preventDefault();if(state.activeId)send('tab:close',state.activeId)}
+ if(e.key==='Escape')openPanel('');
+});
+</script>
+</body>
+</html>

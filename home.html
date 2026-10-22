@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Astrava Home</title>
+<style>
+*{box-sizing:border-box}
+:root{color-scheme:dark;--text:#f7f0ff;--muted:#b9a8d2;--line:#50346a;--accent:#c48bff}
+body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 50% 20%,#382052 0,#1b1030 32%,#0b0714 72%);color:var(--text);font:15px system-ui,sans-serif;overflow:auto}
+body:before,body:after{content:"";position:fixed;width:300px;height:300px;border-radius:50%;filter:blur(100px);opacity:.2;pointer-events:none}
+body:before{background:#a05cff;top:5%;left:4%}
+body:after{background:#6535cf;right:2%;bottom:0}
+main{position:relative;z-index:1;max-width:850px;margin:0 auto;padding:9vh 24px 50px;text-align:center}
+.mark{font-size:13px;letter-spacing:5px;color:#d9baff;font-weight:800}
+h1{font-size:clamp(42px,8vw,76px);letter-spacing:-3px;margin:14px 0 5px;background:linear-gradient(100deg,#fff,#dfc5ff 50%,#ad71ff);color:transparent;background-clip:text}
+.subtitle{color:var(--muted);margin-bottom:35px}
+form{display:flex;gap:8px;max-width:670px;margin:0 auto 36px;padding:7px;background:#140d20cc;border:1px solid var(--line);border-radius:17px;box-shadow:0 12px 55px #0005}
+input{min-width:0;flex:1;background:transparent;border:0;outline:none;color:white;font:inherit;padding:10px 14px}
+button{border:0;border-radius:11px;background:linear-gradient(110deg,#854dcc,#bb79ff);color:white;font-weight:750;padding:0 21px;cursor:pointer}
+h2{font-size:12px;letter-spacing:3px;color:#c8b1e0;margin:0 0 15px}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+a{color:inherit;text-decoration:none}
+.tile{display:flex;flex-direction:column;align-items:center;gap:11px;padding:19px 8px;border:1px solid #ffffff13;background:#ffffff08;border-radius:16px;transition:transform .18s,background .18s,border .18s}
+.tile:hover{transform:translateY(-3px);background:#ffffff12;border-color:#a76be766}
+.emoji{width:43px;height:43px;display:grid;place-items:center;background:linear-gradient(145deg,#39214e,#201430);border:1px solid #68428a;border-radius:13px;font-size:21px}
+.label{font-weight:650;font-size:13px}
+footer{color:#806c99;font-size:11px;margin-top:42px}
+@media(max-width:540px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}main{padding-top:6vh}h1{letter-spacing:-2px}}
+</style>
+</head>
+<body>
+<main>
+ <div class="mark">✦ A S T R A V A</div>
+ <h1>Find your universe.</h1>
+ <div class="subtitle">One search. A thousand possibilities.</div>
+ <form id="search"><input id="q" placeholder="Search the web or enter a website…" autofocus><button>Explore ↗</button></form>
+ <h2>QUICK LAUNCH</h2>
+ <div class="grid">
+  <a class="tile" href="https://astrava.onrender.com"><span class="emoji">🌌</span><span class="label">Astrava!</span></a>
+  <a class="tile" href="https://www.google.com"><span class="emoji">⌕</span><span class="label">Google</span></a>
+  <a class="tile" href="https://www.youtube.com"><span class="emoji">▶</span><span class="label">YouTube</span></a>
+  <a class="tile" href="https://www.wikipedia.org"><span class="emoji">W</span><span class="label">Wikipedia</span></a>
+  <a class="tile" href="https://www.github.com"><span class="emoji">⌘</span><span class="label">GitHub</span></a>
+  <a class="tile" href="https://www.nasa.gov"><span class="emoji">✦</span><span class="label">NASA</span></a>
+  <a class="tile" href="https://www.khanacademy.org"><span class="emoji">◇</span><span class="label">Khan Academy</span></a>
+  <a class="tile" href="https://www.openstreetmap.org"><span class="emoji">⌖</span><span class="label">Maps</span></a>
+  <a class="tile" href="https://www.britannica.com"><span class="emoji">▤</span><span class="label">Britannica</span></a>
+ </div>
+ <footer>Astrava Browser · Explore responsibly</footer>
+</main>
+<script>
+document.getElementById('search').addEventListener('submit', e => {
+  e.preventDefault();
+  const q = document.getElementById('q').value.trim();
+  if (!q || q.startsWith('file://')) return;
+  window.astrava.send('home:search', q);
+});
+
+document.querySelectorAll('.tile').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    const target = a.getAttribute('href');
+    if (target && /^https?:\/\//i.test(target)) {
+      window.astrava.send('home:open', target);
+    }
+  });
+});
+</script>
+</body>
+</html>

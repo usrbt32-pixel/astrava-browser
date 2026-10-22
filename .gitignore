@@ -1,0 +1,5 @@
+node_modules/
+*.backup*
+*.before-*
+*.bak
+.DS_Store

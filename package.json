@@ -1,0 +1,12 @@
+{
+  "name": "astrava-browser-desktop",
+  "version": "1.0.0",
+  "description": "Astrava desktop browser",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^45.0.0"
+  }
+}
